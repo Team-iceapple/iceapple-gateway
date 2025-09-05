@@ -1,14 +1,18 @@
+import { randomBytes } from 'node:crypto';
 import type { RequestHandler } from 'express';
 
 export const requestLogger: RequestHandler = (req, res, next) => {
-    const id = Math.random().toString(16).substring(2, 8);
-    const { originalUrl, method } = req;
-
-    console.log(`[REQUEST] ${id} ${method} ${originalUrl}`);
+    const id = randomBytes(4).toString('hex');
+    const { method, originalUrl } = req;
+    console.log(
+        `${new Date().toISOString()} | REQUEST  | ${id} | ${method} ${originalUrl}`,
+    );
 
     res.on('finish', () => {
         const { statusCode } = res;
-        console.log(`[RESPONSE] ${id} ${statusCode} ${originalUrl}`);
+        console.log(
+            `${new Date().toISOString()} | RESPONSE | ${id} | ${method} ${originalUrl} | ${statusCode}`,
+        );
     });
 
     next();

@@ -1,1 +1,4 @@
-export { getServerBaseUrlFromServiceName } from './server-registry';
+export {
+    getServerBaseUrlFromServiceName,
+    isServerBaseUrlFromServiceName,
+} from './server-registry';

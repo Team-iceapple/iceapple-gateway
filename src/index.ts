@@ -1,10 +1,11 @@
 import type { Request, Response } from 'express';
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { getEnv } from '@/common/env';
+import { getServerBaseUrlFromServiceName } from '@/common/server';
 import { authMiddleware } from '@/middleware/auth.middleware.ts';
 import { requestLogger } from '@/middleware/request-logger.ts';
-import {getEnv} from '@/common/env';
-import {getServerBaseUrlFromServiceName} from '@/common/server';
+import { routeValidateMiddleware } from '@/middleware/route-validate.middleware.ts';
 
 const env = getEnv();
 const app = express();
@@ -15,6 +16,10 @@ app.use(
     createProxyMiddleware<Request, Response>({
         target: env.PROJECT_BASE_URL,
         logger: console,
+        on: {
+            proxyReq: (req) =>
+                console.log('[ProxyRequest]', req.host, req.path),
+        },
     }),
 );
 
@@ -23,6 +28,10 @@ app.use(
     createProxyMiddleware<Request, Response>({
         target: env.PLACE_BASE_URL,
         logger: console,
+        on: {
+            proxyReq: (req) =>
+                console.log('[ProxyRequest]', req.host, req.path),
+        },
     }),
 );
 
@@ -31,6 +40,10 @@ app.use(
     createProxyMiddleware<Request, Response>({
         target: env.NOTICE_BASE_URL,
         logger: console,
+        on: {
+            proxyReq: (req) =>
+                console.log('[ProxyRequest]', req.host, req.path),
+        },
     }),
 );
 
@@ -39,21 +52,26 @@ app.use(
     createProxyMiddleware<Request, Response>({
         target: env.HOME_BASE_URL,
         logger: console,
+        on: {
+            proxyReq: (req) =>
+                console.log('[ProxyRequest]', req.host, req.path),
+        },
     }),
 );
 
 app.use(
     '/:service/admin',
+    routeValidateMiddleware,
     authMiddleware,
     createProxyMiddleware<Request, Response>({
-        target: `http://localhost:${env.PORT}`,
         router: (req) => getServerBaseUrlFromServiceName(req.params.service),
         pathRewrite: {
             '^/[^/]+/admin': '/admin',
         },
         on: {
-            proxyReq: (req) => console.log(req.host, req.path),
-        }
+            proxyReq: (req) =>
+                console.log('[ProxyRequest]', req.host, req.path),
+        },
     }),
 );
 
