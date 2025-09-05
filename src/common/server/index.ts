@@ -1,0 +1,1 @@
+export { getServerBaseUrlFromServiceName } from './server-registry';
