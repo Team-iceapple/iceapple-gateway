@@ -10,6 +10,7 @@ const ServerRegistry = {
 } as const;
 
 export function getServerBaseUrlFromServiceName(service: string): string {
+    console.log('serviceName', service);
     return ServerRegistry[service as keyof typeof ServerRegistry];
 }
 
