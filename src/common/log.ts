@@ -67,6 +67,8 @@ export const onLogger: OnProxyEvent = {
 
             console.info(`[RESPONSE] 서비스 응답 본문:\n${formattedBody}`);
         });
+
+        delete proxyRes.headers['transfer-encoding'];
     },
 
     error: (err, req, res) => {
