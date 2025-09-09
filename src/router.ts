@@ -2,7 +2,6 @@ import type { Request, Response } from 'express';
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { getEnv } from '@/common/env';
-import { onLogger } from '@/common/log.ts';
 import { getServerBaseUrlFromServiceName } from '@/common/server';
 import { authMiddleware } from '@/middleware/auth.middleware.ts';
 import { routeValidateMiddleware } from '@/middleware/route-validate.middleware.ts';
@@ -16,7 +15,16 @@ proxyRouter.use(
     createProxyMiddleware<Request, Response>({
         target: HOME_BASE_URL,
         logger: console,
-        on: onLogger,
+        on: {
+            proxyRes: (proxyRes, req, res) => {
+                delete proxyRes.headers['transfer-encoding'];
+            },
+            error: (err, req, res) => {
+                console.error('[ERROR] 프록시 에러 발생');
+                console.error(`요청 정보: ${req.method} ${req.url}`);
+                console.error(`스택 트레이스: ${err.stack}`);
+            },
+        },
     }),
 );
 
@@ -25,7 +33,13 @@ proxyRouter.use(
     createProxyMiddleware<Request, Response>({
         target: PROJECT_BASE_URL,
         logger: console,
-        on: onLogger,
+        on: {
+            error: (err, req, res) => {
+                console.error('[ERROR] 프록시 에러 발생');
+                console.error(`요청 정보: ${req.method} ${req.url}`);
+                console.error(`스택 트레이스: ${err.stack}`);
+            },
+        },
     }),
 );
 
@@ -34,7 +48,16 @@ proxyRouter.use(
     createProxyMiddleware<Request, Response>({
         target: PLACE_BASE_URL,
         logger: console,
-        on: onLogger,
+        on: {
+            proxyRes: (proxyRes, req, res) => {
+                delete proxyRes.headers['transfer-encoding'];
+            },
+            error: (err, req, res) => {
+                console.error('[ERROR] 프록시 에러 발생');
+                console.error(`요청 정보: ${req.method} ${req.url}`);
+                console.error(`스택 트레이스: ${err.stack}`);
+            },
+        },
     }),
 );
 
@@ -43,7 +66,13 @@ proxyRouter.use(
     createProxyMiddleware<Request, Response>({
         target: NOTICE_BASE_URL,
         logger: console,
-        on: onLogger,
+        on: {
+            error: (err, req, res) => {
+                console.error('[ERROR] 프록시 에러 발생');
+                console.error(`요청 정보: ${req.method} ${req.url}`);
+                console.error(`스택 트레이스: ${err.stack}`);
+            },
+        },
     }),
 );
 
@@ -56,7 +85,13 @@ proxyRouter.use(
         pathRewrite: {
             '^/': '/admin/',
         },
-        on: onLogger,
+        on: {
+            error: (err, req, res) => {
+                console.error('[ERROR] 프록시 에러 발생');
+                console.error(`요청 정보: ${req.method} ${req.url}`);
+                console.error(`스택 트레이스: ${err.stack}`);
+            },
+        },
     }),
 );
 
