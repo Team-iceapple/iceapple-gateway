@@ -20,7 +20,7 @@ export const authMiddleware: Handler = async (req, res, next) => {
             },
         });
 
-        console.log('인증 결과', response.json());
+        console.log('인증 결과', await response.json());
 
         if (!response.ok)
             return res
