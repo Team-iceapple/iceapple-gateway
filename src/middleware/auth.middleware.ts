@@ -15,17 +15,18 @@ export const authMiddleware: Handler = async (req, res, next) => {
 
         console.log('[AuthMiddleware] 인증서버로 인증 요청...');
         const response = await fetch(`${AUTH_BASE_URL}/validate`, {
+            method: 'POST',
             headers: {
                 Authorization: authorization,
             },
         });
 
-        console.log('인증 결과', await response.json());
+        const body = await response.json();
+
+        console.log('인증 결과', body);
 
         if (!response.ok)
-            return res
-                .status(401)
-                .json({ message: (await response.json()).message });
+            return res.status(401).json({ message: body.message });
 
         next();
     } catch (error) {
