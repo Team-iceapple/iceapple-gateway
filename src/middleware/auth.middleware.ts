@@ -13,14 +13,19 @@ export const authMiddleware: Handler = async (req, res, next) => {
                 .json({ message: 'Authorization header is required.' });
         }
 
+        console.log('[AuthMiddleware] 인증서버로 인증 요청...');
         const response = await fetch(`${AUTH_BASE_URL}/validate`, {
             headers: {
                 Authorization: authorization,
             },
         });
 
+        console.log('인증 결과', response.json());
+
         if (!response.ok)
-            return res.status(401).json({ message: 'Unauthorized.' });
+            return res
+                .status(401)
+                .json({ message: (await response.json()).message });
 
         next();
     } catch (error) {
