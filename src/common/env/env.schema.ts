@@ -6,6 +6,7 @@ export const EnvironmentSchema = z.object({
     PROJECT_BASE_URL: z.url(),
     PLACE_BASE_URL: z.url(),
     NOTICE_BASE_URL: z.url(),
+    AUTH_BASE_URL: z.url(),
 });
 
 export type Environment = z.infer<typeof EnvironmentSchema>;

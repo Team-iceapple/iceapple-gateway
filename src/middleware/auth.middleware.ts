@@ -1,9 +1,30 @@
 import type { Handler } from 'express';
+import { getEnv } from '@/common/env';
 
-export const authMiddleware: Handler = (req, res, next) => {
-    console.log(
-        '추후, 인증 서버에 인증 요청 후 인증이 완료된 경우에만 next()호출',
-    );
+const { AUTH_BASE_URL } = getEnv();
 
-    next();
+export const authMiddleware: Handler = async (req, res, next) => {
+    try {
+        const { authorization } = req.headers;
+
+        if (!authorization) {
+            return res
+                .status(401)
+                .json({ message: 'Authorization header is required.' });
+        }
+
+        const response = await fetch(`${AUTH_BASE_URL}/validate`, {
+            headers: {
+                Authorization: authorization,
+            },
+        });
+
+        if (!response.ok)
+            return res.status(401).json({ message: 'Unauthorized.' });
+
+        next();
+    } catch (error) {
+        console.error('Authentication middleware error:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
 };
