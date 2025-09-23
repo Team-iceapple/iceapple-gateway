@@ -92,6 +92,13 @@ proxyRouter.use(
                 console.error(`요청 정보: ${req.method} ${req.url}`);
                 console.error(`스택 트레이스: ${err.stack}`);
             },
+            proxyReq: (preq, req, res) => {
+                console.log('클라이언트 요청', preq.getHeaders());
+            },
+            proxyRes: (proxyRes, req, res) => {
+                console.log('인증 서버로부터 받은 응답', res.getHeaders());
+                console.log('프록시 서버의 응답', proxyRes.headers);
+            },
         },
     }),
 );
