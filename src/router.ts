@@ -111,6 +111,8 @@ proxyRouter.use(
                 }
             },
             proxyRes: (proxyRes, req, res) => {
+                delete proxyRes.headers['transfer-encoding'];
+
                 console.log('--- 인증 서버 -> 프록시 서버 응답 ---');
                 console.log('응답 상태 코드:', proxyRes.statusCode);
                 console.log('응답 헤더:', proxyRes.headers);
