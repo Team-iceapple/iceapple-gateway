@@ -8,7 +8,6 @@ const { PORT } = getEnv();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
 app.use(requestLogger);
 app.use('/api', proxyRouter);
 

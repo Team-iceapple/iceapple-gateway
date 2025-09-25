@@ -7,6 +7,7 @@ const ServerRegistry = {
     notice: Env.NOTICE_BASE_URL,
     place: Env.PLACE_BASE_URL,
     project: Env.PROJECT_BASE_URL,
+    auth: Env.AUTH_BASE_URL,
 } as const;
 
 export function getServerBaseUrlFromServiceName(service: string): string {
@@ -16,4 +17,10 @@ export function getServerBaseUrlFromServiceName(service: string): string {
 
 export function isServerBaseUrlFromServiceName(service: string): boolean {
     return Object.hasOwn(ServerRegistry, service);
+}
+
+export function isSpringServer(path: string): boolean {
+    return (
+        path.includes('home') || path.includes('place') || path.includes('auth')
+    );
 }

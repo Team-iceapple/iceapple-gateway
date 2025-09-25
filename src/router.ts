@@ -3,6 +3,7 @@ import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { getEnv } from '@/common/env';
 import { getServerBaseUrlFromServiceName } from '@/common/server';
+import { isSpringServer } from '@/common/server/server-registry.ts';
 import { authMiddleware } from '@/middleware/auth.middleware.ts';
 import { routeValidateMiddleware } from '@/middleware/route-validate.middleware.ts';
 
@@ -96,19 +97,7 @@ proxyRouter.use(
                 console.log('--- 프록시 -> 인증 서버 요청 ---');
                 console.log('요청 URL:', proxyReq.path);
                 console.log('요청 헤더:', proxyReq.getHeaders());
-                if (req.body) {
-                    console.log('전처리 전 바디', req.body);
-                    const bodyData = JSON.stringify(req.body);
-                    proxyReq.setHeader('Content-Type', 'application/json');
-                    proxyReq.setHeader(
-                        'Content-Length',
-                        Buffer.byteLength(bodyData),
-                    );
-                    proxyReq.write(bodyData);
-                    console.log('요청 바디:', bodyData);
-                } else {
-                    console.log('요청 바디: 없음 (req.body is empty)');
-                }
+                console.log('요청 바디', req.body);
             },
             proxyRes: (proxyRes, req, res) => {
                 delete proxyRes.headers['transfer-encoding'];
@@ -116,14 +105,6 @@ proxyRouter.use(
                 console.log('--- 인증 서버 -> 프록시 서버 응답 ---');
                 console.log('응답 상태 코드:', proxyRes.statusCode);
                 console.log('응답 헤더:', proxyRes.headers);
-                let responseBody = '';
-                proxyRes.on('data', (chunk) => {
-                    responseBody += chunk.toString();
-                });
-                proxyRes.on('end', () => {
-                    console.log('응답 바디:', responseBody);
-                    console.log('------------------------------------');
-                });
             },
         },
         changeOrigin: true,
@@ -132,6 +113,7 @@ proxyRouter.use(
 
 proxyRouter.use(
     '/admin/:service',
+    express.json(),
     routeValidateMiddleware,
     authMiddleware,
     createProxyMiddleware<Request, Response>({
@@ -140,6 +122,22 @@ proxyRouter.use(
             '^/': '/admin/',
         },
         on: {
+            proxyReq: (proxyReq, req, res) => {
+                if (req.body) {
+                    const bodyData = JSON.stringify(req.body);
+                    proxyReq.setHeader('Content-Type', 'application/json');
+                    proxyReq.setHeader(
+                        'Content-Length',
+                        Buffer.byteLength(bodyData),
+                    );
+                    proxyReq.write(bodyData);
+                }
+            },
+            proxyRes: (proxyRes, req, res) => {
+                if (isSpringServer(req.params.service)) {
+                    delete proxyRes.headers['transfer-encoding'];
+                }
+            },
             error: (err, req, res) => {
                 console.error('[ERROR] 프록시 에러 발생');
                 console.error(`요청 정보: ${req.method} ${req.url}`);
