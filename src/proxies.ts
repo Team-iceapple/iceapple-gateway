@@ -3,6 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { getEnv } from '@/common/env';
 import { getServerBaseUrlFromServiceName } from '@/common/server';
 import { isSpringServer } from '@/common/server/server-registry';
+import type { IncomingMessage } from 'node:http';
 
 const {
     HOME_BASE_URL,
@@ -12,12 +13,35 @@ const {
     AUTH_BASE_URL,
 } = getEnv();
 
+const addCleanup = (proxyRes: IncomingMessage, req: Request, res: Response) => {
+    const cleanup = (err?: Error) => {
+        proxyRes.removeListener('error', cleanup);
+        proxyRes.removeListener('close', cleanup);
+        res.removeListener('error', cleanup);
+        res.removeListener('close', cleanup);
+
+        if (err) {
+            req.destroy(err);
+            proxyRes.destroy(err);
+        } else {
+            req.destroy();
+            proxyRes.destroy();
+        }
+    };
+
+    proxyRes.once('error', cleanup);
+    proxyRes.once('close', cleanup);
+    res.once('error', cleanup);
+    res.once('close', cleanup);
+};
+
 export const homeProxy = createProxyMiddleware<Request, Response>({
     target: HOME_BASE_URL,
     logger: console,
     on: {
-        proxyRes: (proxyRes) => {
+        proxyRes: (proxyRes, req, res) => {
             delete proxyRes.headers['transfer-encoding'];
+            addCleanup(proxyRes, req, res);
         },
         error: (err, req) => {
             console.error('[ERROR] 프록시 에러 발생');
@@ -31,6 +55,7 @@ export const projectProxy = createProxyMiddleware<Request, Response>({
     target: PROJECT_BASE_URL,
     logger: console,
     on: {
+        proxyRes: addCleanup,
         error: (err, req) => {
             console.error('[ERROR] 프록시 에러 발생');
             console.error(`요청 정보: ${req.method} ${req.url}`);
@@ -43,8 +68,9 @@ export const placeProxy = createProxyMiddleware<Request, Response>({
     target: PLACE_BASE_URL,
     logger: console,
     on: {
-        proxyRes: (proxyRes) => {
+        proxyRes: (proxyRes, req, res) => {
             delete proxyRes.headers['transfer-encoding'];
+            addCleanup(proxyRes, req, res);
         },
         error: (err, req) => {
             console.error('[ERROR] 프록시 에러 발생');
@@ -58,6 +84,7 @@ export const noticeProxy = createProxyMiddleware<Request, Response>({
     target: NOTICE_BASE_URL,
     logger: console,
     on: {
+        proxyRes: addCleanup,
         error: (err, req) => {
             console.error('[ERROR] 프록시 에러 발생');
             console.error(`요청 정보: ${req.method} ${req.url}`);
@@ -81,12 +108,13 @@ export const authProxy = createProxyMiddleware<Request, Response>({
             console.log('요청 헤더:', proxyReq.getHeaders());
             console.log('요청 바디', req.body);
         },
-        proxyRes: (proxyRes) => {
+        proxyRes: (proxyRes, req, res) => {
             delete proxyRes.headers['transfer-encoding'];
 
             console.log('--- 인증 서버 -> 프록시 서버 응답 ---');
             console.log('응답 상태 코드:', proxyRes.statusCode);
             console.log('응답 헤더:', proxyRes.headers);
+            addCleanup(proxyRes, req, res);
         },
     },
     changeOrigin: true,
@@ -109,10 +137,11 @@ export const adminProxy = createProxyMiddleware<Request, Response>({
                 proxyReq.write(bodyData);
             }
         },
-        proxyRes: (proxyRes, req) => {
+        proxyRes: (proxyRes, req, res) => {
             if (isSpringServer(req.params.service)) {
                 delete proxyRes.headers['transfer-encoding'];
             }
+            addCleanup(proxyRes, req, res);
         },
         error: (err, req) => {
             console.error('[ERROR] 프록시 에러 발생');
