@@ -111,40 +111,42 @@ proxyRouter.use(
     }),
 );
 
+const adminProxy = createProxyMiddleware<Request, Response>({
+    router: (req) => getServerBaseUrlFromServiceName(req.params.service),
+    pathRewrite: {
+        '^/': '/admin/',
+    },
+    on: {
+        proxyReq: (proxyReq, req, res) => {
+            if (req.body) {
+                const bodyData = JSON.stringify(req.body);
+                proxyReq.setHeader('Content-Type', 'application/json');
+                proxyReq.setHeader(
+                    'Content-Length',
+                    Buffer.byteLength(bodyData),
+                );
+                proxyReq.write(bodyData);
+            }
+        },
+        proxyRes: (proxyRes, req, res) => {
+            if (isSpringServer(req.params.service)) {
+                delete proxyRes.headers['transfer-encoding'];
+            }
+        },
+        error: (err, req, res) => {
+            console.error('[ERROR] 프록시 에러 발생');
+            console.error(`요청 정보: ${req.method} ${req.url}`);
+            console.error(`스택 트레이스: ${err.stack}`);
+        },
+    },
+});
+
 proxyRouter.use(
     '/admin/:service',
     express.json(),
     routeValidateMiddleware,
     authMiddleware,
-    createProxyMiddleware<Request, Response>({
-        router: (req) => getServerBaseUrlFromServiceName(req.params.service),
-        pathRewrite: {
-            '^/': '/admin/',
-        },
-        on: {
-            proxyReq: (proxyReq, req, res) => {
-                if (req.body) {
-                    const bodyData = JSON.stringify(req.body);
-                    proxyReq.setHeader('Content-Type', 'application/json');
-                    proxyReq.setHeader(
-                        'Content-Length',
-                        Buffer.byteLength(bodyData),
-                    );
-                    proxyReq.write(bodyData);
-                }
-            },
-            proxyRes: (proxyRes, req, res) => {
-                if (isSpringServer(req.params.service)) {
-                    delete proxyRes.headers['transfer-encoding'];
-                }
-            },
-            error: (err, req, res) => {
-                console.error('[ERROR] 프록시 에러 발생');
-                console.error(`요청 정보: ${req.method} ${req.url}`);
-                console.error(`스택 트레이스: ${err.stack}`);
-            },
-        },
-    }),
+    adminProxy,
 );
 
 export default proxyRouter;
