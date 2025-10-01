@@ -1,9 +1,6 @@
 import type { Request, Response } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 import { getEnv } from '@/common/env';
-import { getServerBaseUrlFromServiceName } from '@/common/server';
-import { isSpringServer } from '@/common/server/server-registry';
-import type { IncomingMessage } from 'node:http';
 
 const {
     HOME_BASE_URL,
@@ -13,41 +10,20 @@ const {
     AUTH_BASE_URL,
 } = getEnv();
 
-const addCleanup = (proxyRes: IncomingMessage, req: Request, res: Response) => {
-    const cleanup = (err?: Error) => {
-        proxyRes.removeListener('error', cleanup);
-        proxyRes.removeListener('close', cleanup);
-        res.removeListener('error', cleanup);
-        res.removeListener('close', cleanup);
-
-        if (err) {
-            req.destroy(err);
-            proxyRes.destroy(err);
-        } else {
-            req.destroy();
-            proxyRes.destroy();
-        }
-    };
-
-    proxyRes.once('error', cleanup);
-    proxyRes.once('close', cleanup);
-    res.once('error', cleanup);
-    res.once('close', cleanup);
+const proxyErrorHandler = (err: Error, req: Request) => {
+    console.error('[ERROR] 프록시 에러 발생');
+    console.error(`요청 정보: ${req.method} ${req.url}`);
+    console.error(`스택 트레이스: ${err.stack}`);
 };
 
 export const homeProxy = createProxyMiddleware<Request, Response>({
     target: HOME_BASE_URL,
     logger: console,
     on: {
-        proxyRes: (proxyRes, req, res) => {
+        proxyRes: (proxyRes) => {
             delete proxyRes.headers['transfer-encoding'];
-            addCleanup(proxyRes, req, res);
         },
-        error: (err, req) => {
-            console.error('[ERROR] 프록시 에러 발생');
-            console.error(`요청 정보: ${req.method} ${req.url}`);
-            console.error(`스택 트레이스: ${err.stack}`);
-        },
+        error: proxyErrorHandler,
     },
 });
 
@@ -55,12 +31,7 @@ export const projectProxy = createProxyMiddleware<Request, Response>({
     target: PROJECT_BASE_URL,
     logger: console,
     on: {
-        proxyRes: addCleanup,
-        error: (err, req) => {
-            console.error('[ERROR] 프록시 에러 발생');
-            console.error(`요청 정보: ${req.method} ${req.url}`);
-            console.error(`스택 트레이스: ${err.stack}`);
-        },
+        error: proxyErrorHandler,
     },
 });
 
@@ -68,15 +39,10 @@ export const placeProxy = createProxyMiddleware<Request, Response>({
     target: PLACE_BASE_URL,
     logger: console,
     on: {
-        proxyRes: (proxyRes, req, res) => {
+        proxyRes: (proxyRes) => {
             delete proxyRes.headers['transfer-encoding'];
-            addCleanup(proxyRes, req, res);
         },
-        error: (err, req) => {
-            console.error('[ERROR] 프록시 에러 발생');
-            console.error(`요청 정보: ${req.method} ${req.url}`);
-            console.error(`스택 트레이스: ${err.stack}`);
-        },
+        error: proxyErrorHandler,
     },
 });
 
@@ -84,12 +50,7 @@ export const noticeProxy = createProxyMiddleware<Request, Response>({
     target: NOTICE_BASE_URL,
     logger: console,
     on: {
-        proxyRes: addCleanup,
-        error: (err, req) => {
-            console.error('[ERROR] 프록시 에러 발생');
-            console.error(`요청 정보: ${req.method} ${req.url}`);
-            console.error(`스택 트레이스: ${err.stack}`);
-        },
+        error: proxyErrorHandler,
     },
 });
 
@@ -97,56 +58,59 @@ export const authProxy = createProxyMiddleware<Request, Response>({
     target: AUTH_BASE_URL,
     logger: console,
     on: {
-        error: (err, req) => {
-            console.error('[ERROR] 프록시 에러 발생');
-            console.error(`요청 정보: ${req.method} ${req.url}`);
-            console.error(`스택 트레이스: ${err.stack}`);
-        },
-        proxyReq: (proxyReq, req) => {
-            console.log('--- 프록시 -> 인증 서버 요청 ---');
-            console.log('요청 URL:', proxyReq.path);
-            console.log('요청 헤더:', proxyReq.getHeaders());
-            console.log('요청 바디', req.body);
-        },
-        proxyRes: (proxyRes, req, res) => {
+        error: proxyErrorHandler,
+        proxyRes: (proxyRes) => {
             delete proxyRes.headers['transfer-encoding'];
-
-            console.log('--- 인증 서버 -> 프록시 서버 응답 ---');
-            console.log('응답 상태 코드:', proxyRes.statusCode);
-            console.log('응답 헤더:', proxyRes.headers);
-            addCleanup(proxyRes, req, res);
         },
     },
-    changeOrigin: true,
 });
 
-export const adminProxy = createProxyMiddleware<Request, Response>({
-    router: (req) => getServerBaseUrlFromServiceName(req.params.service),
+export const adminHomeProxy = createProxyMiddleware<Request, Response>({
+    target: HOME_BASE_URL,
     pathRewrite: {
-        '^/': '/admin/',
+        '^': '/admin',
     },
     on: {
-        proxyReq: (proxyReq, req) => {
-            if (req.body) {
-                const bodyData = JSON.stringify(req.body);
-                proxyReq.setHeader('Content-Type', 'application/json');
-                proxyReq.setHeader(
-                    'Content-Length',
-                    Buffer.byteLength(bodyData),
-                );
-                proxyReq.write(bodyData);
-            }
+        error: proxyErrorHandler,
+        proxyReq: fixRequestBody,
+        proxyRes: (proxyRes) => {
+            delete proxyRes.headers['transfer-encoding'];
         },
-        proxyRes: (proxyRes, req, res) => {
-            if (isSpringServer(req.params.service)) {
-                delete proxyRes.headers['transfer-encoding'];
-            }
-            addCleanup(proxyRes, req, res);
+    },
+});
+
+export const adminPlaceProxy = createProxyMiddleware<Request, Response>({
+    target: PLACE_BASE_URL,
+    pathRewrite: {
+        '^': '/admin',
+    },
+    on: {
+        error: proxyErrorHandler,
+        proxyReq: fixRequestBody,
+        proxyRes: (proxyRes) => {
+            delete proxyRes.headers['transfer-encoding'];
         },
-        error: (err, req) => {
-            console.error('[ERROR] 프록시 에러 발생');
-            console.error(`요청 정보: ${req.method} ${req.url}`);
-            console.error(`스택 트레이스: ${err.stack}`);
-        },
+    },
+});
+
+export const adminNoticeProxy = createProxyMiddleware<Request, Response>({
+    target: NOTICE_BASE_URL,
+    pathRewrite: {
+        '^': '/admin',
+    },
+    on: {
+        error: proxyErrorHandler,
+        proxyReq: fixRequestBody,
+    },
+});
+
+export const adminProjectProxy = createProxyMiddleware<Request, Response>({
+    target: PROJECT_BASE_URL,
+    pathRewrite: {
+        '^': '/admin',
+    },
+    on: {
+        error: proxyErrorHandler,
+        proxyReq: fixRequestBody,
     },
 });

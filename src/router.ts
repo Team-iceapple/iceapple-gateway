@@ -1,8 +1,10 @@
 import express from 'express';
 import { authMiddleware } from '@/middleware/auth.middleware';
-import { routeValidateMiddleware } from '@/middleware/route-validate.middleware';
 import {
-    adminProxy,
+    adminHomeProxy,
+    adminNoticeProxy,
+    adminPlaceProxy,
+    adminProjectProxy,
     authProxy,
     homeProxy,
     noticeProxy,
@@ -17,12 +19,12 @@ proxyRouter.use('/project', projectProxy);
 proxyRouter.use('/place', placeProxy);
 proxyRouter.use('/notice', noticeProxy);
 proxyRouter.use('/auth', authProxy);
-proxyRouter.use(
-    '/admin/:service',
-    express.json(),
-    routeValidateMiddleware,
-    authMiddleware,
-    adminProxy,
-);
+
+const adminMiddlewares = [express.json(), authMiddleware];
+
+proxyRouter.use('/admin/home', ...adminMiddlewares, adminHomeProxy);
+proxyRouter.use('/admin/place', ...adminMiddlewares, adminPlaceProxy);
+proxyRouter.use('/admin/notice', ...adminMiddlewares, adminNoticeProxy);
+proxyRouter.use('/admin/project', ...adminMiddlewares, adminProjectProxy);
 
 export default proxyRouter;
