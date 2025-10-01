@@ -24,5 +24,4 @@ app.get('/debug/heap-snapshot', (req, res) => {
 
 app.listen(PORT, () => {
     console.info(`Server Running on port: ${PORT}`);
-    TAKE_HEAP_SNAPSHOT();
 });
