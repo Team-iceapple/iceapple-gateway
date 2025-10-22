@@ -21,12 +21,8 @@ export const authMiddleware: Handler = async (req, res, next) => {
             },
         });
 
-        const body = await response.json();
-
-        console.log('인증 결과', body);
-
         if (!response.ok)
-            return res.status(401).json({ message: body.message });
+            return res.status(401).json({ message: 'Authentication Failed.' });
 
         next();
     } catch (error) {

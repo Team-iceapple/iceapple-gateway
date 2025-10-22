@@ -1,5 +1,5 @@
-import type { Request, Response } from 'express';
-import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
+import type { NextFunction, Request, Response } from 'express';
+import proxy from 'express-http-proxy';
 import { getEnv } from '@/common/env';
 
 const {
@@ -10,135 +10,49 @@ const {
     AUTH_BASE_URL,
 } = getEnv();
 
-const proxyErrorHandler = (err: Error, req: Request) => {
+const proxyErrorHandler = (err: Error, res: Response, next: NextFunction) => {
     console.error('[ERROR] 프록시 에러 발생');
-    console.error(`요청 정보: ${req.method} ${req.url}`);
     console.error(`스택 트레이스: ${err.stack}`);
+    next(err);
 };
 
-const cleanUpOnProxyRes = (proxyRes: Request, req: Request, res: Response) => {
-    const cleanup = (err: Error) => {
-        // cleanup event listeners to allow clean garbage collection
-        proxyRes.removeListener('error', cleanup);
-        proxyRes.removeListener('close', cleanup);
-        res.removeListener('error', cleanup);
-        res.removeListener('close', cleanup);
-
-        // destroy all source streams to propagate the caught event backward
-        req.destroy(err);
-        proxyRes.destroy(err);
+const createProxyReqPathResolver = (baseUrl: string) => {
+    return (req: Request) => {
+        const longPath = req.url;
+        console.log(`Proxying request to: ${baseUrl + longPath}`);
+        return longPath;
     };
-
-    proxyRes.once('error', cleanup);
-    proxyRes.once('close', cleanup);
-    res.once('error', cleanup);
-    res.once('close', cleanup);
 };
 
-export const homeProxy = createProxyMiddleware<Request, Response>({
-    target: HOME_BASE_URL,
-    logger: console,
-    on: {
-        proxyRes: (proxyRes, req, res) => {
-            delete proxyRes.headers['transfer-encoding'];
-            cleanUpOnProxyRes(proxyRes, req, res);
-        },
-        error: proxyErrorHandler,
-    },
-});
+const createAdminProxyReqPathResolver = (baseUrl: string) => {
+    return (req: Request) => {
+        const longPath = `/admin/${req.url}`;
+        console.log(`Proxying request to: ${baseUrl + longPath}`);
+        return longPath;
+    };
+};
 
-export const projectProxy = createProxyMiddleware<Request, Response>({
-    target: PROJECT_BASE_URL,
-    logger: console,
-    on: {
-        proxyRes: cleanUpOnProxyRes,
-        error: proxyErrorHandler,
-    },
-});
+const createProxy = (baseUrl: string) => {
+    return proxy(baseUrl, {
+        proxyReqPathResolver: createProxyReqPathResolver(baseUrl),
+        proxyErrorHandler,
+    });
+};
 
-export const placeProxy = createProxyMiddleware<Request, Response>({
-    target: PLACE_BASE_URL,
-    logger: console,
-    on: {
-        proxyRes: (proxyRes, req, res) => {
-            delete proxyRes.headers['transfer-encoding'];
-            cleanUpOnProxyRes(proxyRes, req, res);
-        },
-        error: proxyErrorHandler,
-    },
-});
+const createAdminProxy = (baseUrl: string) => {
+    return proxy(baseUrl, {
+        proxyReqPathResolver: createAdminProxyReqPathResolver(baseUrl),
+        proxyErrorHandler,
+    });
+};
 
-export const noticeProxy = createProxyMiddleware<Request, Response>({
-    target: NOTICE_BASE_URL,
-    logger: console,
-    on: {
-        proxyRes: cleanUpOnProxyRes,
-        error: proxyErrorHandler,
-    },
-});
+export const homeProxy = createProxy(HOME_BASE_URL);
+export const projectProxy = createProxy(PROJECT_BASE_URL);
+export const placeProxy = createProxy(PLACE_BASE_URL);
+export const noticeProxy = createProxy(NOTICE_BASE_URL);
+export const authProxy = createProxy(AUTH_BASE_URL);
 
-export const authProxy = createProxyMiddleware<Request, Response>({
-    target: AUTH_BASE_URL,
-    logger: console,
-    on: {
-        error: proxyErrorHandler,
-        proxyRes: (proxyRes, req, res) => {
-            delete proxyRes.headers['transfer-encoding'];
-            cleanUpOnProxyRes(proxyRes, req, res);
-        },
-    },
-});
-
-export const adminHomeProxy = createProxyMiddleware<Request, Response>({
-    target: HOME_BASE_URL,
-    pathRewrite: {
-        '^': '/admin',
-    },
-    on: {
-        error: proxyErrorHandler,
-        proxyReq: fixRequestBody,
-        proxyRes: (proxyRes, req, res) => {
-            delete proxyRes.headers['transfer-encoding'];
-            cleanUpOnProxyRes(proxyRes, req, res);
-        },
-    },
-});
-
-export const adminPlaceProxy = createProxyMiddleware<Request, Response>({
-    target: PLACE_BASE_URL,
-    pathRewrite: {
-        '^': '/admin',
-    },
-    on: {
-        error: proxyErrorHandler,
-        proxyReq: fixRequestBody,
-        proxyRes: (proxyRes, req, res) => {
-            delete proxyRes.headers['transfer-encoding'];
-            cleanUpOnProxyRes(proxyRes, req, res);
-        },
-    },
-});
-
-export const adminNoticeProxy = createProxyMiddleware<Request, Response>({
-    target: NOTICE_BASE_URL,
-    pathRewrite: {
-        '^': '/admin',
-    },
-    on: {
-        error: proxyErrorHandler,
-        proxyReq: fixRequestBody,
-        proxyRes: cleanUpOnProxyRes,
-    },
-});
-
-export const adminProjectProxy = createProxyMiddleware<Request, Response>({
-    target: PROJECT_BASE_URL,
-    pathRewrite: {
-        '^': '/admin',
-    },
-    on: {
-        error: proxyErrorHandler,
-        proxyReq: fixRequestBody,
-        proxyRes: cleanUpOnProxyRes,
-    },
-});
+export const adminHomeProxy = createAdminProxy(HOME_BASE_URL);
+export const adminPlaceProxy = createAdminProxy(PLACE_BASE_URL);
+export const adminNoticeProxy = createAdminProxy(NOTICE_BASE_URL);
+export const adminProjectProxy = createAdminProxy(PROJECT_BASE_URL);

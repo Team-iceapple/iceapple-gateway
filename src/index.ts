@@ -3,7 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import { getEnv } from '@/common/env';
 import { requestLogger } from '@/middleware/request-logger.ts';
-import proxyRouter from '@/router.ts';
+import { apiRouter } from '@/routes';
 
 const { PORT } = getEnv();
 const app = express();
@@ -15,7 +15,7 @@ const TAKE_HEAP_SNAPSHOT = () => {
 
 app.use(cors());
 app.use(requestLogger);
-app.use('/api', proxyRouter);
+app.use('/api', apiRouter);
 
 app.get('/debug/heap-snapshot', (req, res) => {
     TAKE_HEAP_SNAPSHOT();
