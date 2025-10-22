@@ -18,16 +18,25 @@ const proxyErrorHandler = (err: Error, res: Response, next: NextFunction) => {
 
 const createProxyReqPathResolver = (baseUrl: string) => {
     return (req: Request) => {
-        const longPath = req.url;
-        console.log(`Proxying request to: ${baseUrl + longPath}`);
-        return longPath;
+        // console.log(`Proxying request to: ${baseUrl + longPath}`);
+        // return longPath;
+        const newPath = req.url.replace(/^\/[^/]+/, '');
+        const finalPath = newPath || '/';
+
+        console.log(`Proxying request to: ${baseUrl + finalPath}`);
+
+        return finalPath;
     };
 };
 
 const createAdminProxyReqPathResolver = (baseUrl: string) => {
     return (req: Request) => {
-        const longPath = `/admin/${req.url}`;
+        const newPath = req.url.replace(/^\/[^/]+/, '');
+        const finalPath = newPath || '/';
+
+        const longPath = `/admin/${finalPath}`;
         console.log(`Proxying request to: ${baseUrl + longPath}`);
+
         return longPath;
     };
 };
