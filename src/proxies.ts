@@ -18,14 +18,16 @@ const proxyErrorHandler = (err: Error, res: Response, next: NextFunction) => {
 
 const createProxyReqPathResolver = (baseUrl: string) => {
     return (req: Request) => {
-        // console.log(`Proxying request to: ${baseUrl + longPath}`);
-        // return longPath;
-        const newPath = req.url.replace(/^\/[^/]+/, '');
-        const finalPath = newPath || '/';
+        console.log('req.url', req.url);
+        console.log(`Proxying request to: ${baseUrl + req.url}`);
+        return req.url;
 
-        console.log(`Proxying request to: ${baseUrl + finalPath}`);
-
-        return finalPath;
+        // const newPath = req.url.replace(/^\/[^/]+/, '');
+        // const finalPath = newPath || '/';
+        //
+        // console.log(`Proxying request to: ${baseUrl + finalPath}`);
+        //
+        // return finalPath;
     };
 };
 
