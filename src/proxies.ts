@@ -49,11 +49,11 @@ const createProxy = (baseUrl: string): RequestHandler => {
             'multipart/form-data',
         );
 
-        return proxy(baseUrl, {
+        proxy(baseUrl, {
             parseReqBody: !isMultipart,
             proxyReqPathResolver: createProxyReqPathResolver(baseUrl),
             proxyErrorHandler,
-        });
+        })(req, res, next);
     };
 };
 
@@ -63,11 +63,11 @@ const createAdminProxy = (baseUrl: string): RequestHandler => {
             'multipart/form-data',
         );
 
-        return proxy(baseUrl, {
+        proxy(baseUrl, {
             parseReqBody: !isMultipart,
             proxyReqPathResolver: createAdminProxyReqPathResolver(baseUrl),
             proxyErrorHandler,
-        });
+        })(req, res, next);
     };
 };
 
