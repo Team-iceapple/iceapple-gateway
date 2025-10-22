@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import proxy from 'express-http-proxy';
 import { getEnv } from '@/common/env';
 
@@ -43,18 +43,32 @@ const createAdminProxyReqPathResolver = (baseUrl: string) => {
     };
 };
 
-const createProxy = (baseUrl: string) => {
-    return proxy(baseUrl, {
-        proxyReqPathResolver: createProxyReqPathResolver(baseUrl),
-        proxyErrorHandler,
-    });
+const createProxy = (baseUrl: string): RequestHandler => {
+    return (req, res, next) => {
+        const isMultipart = req.headers['content-type']?.includes(
+            'multipart/form-data',
+        );
+
+        return proxy(baseUrl, {
+            parseReqBody: !isMultipart,
+            proxyReqPathResolver: createProxyReqPathResolver(baseUrl),
+            proxyErrorHandler,
+        });
+    };
 };
 
-const createAdminProxy = (baseUrl: string) => {
-    return proxy(baseUrl, {
-        proxyReqPathResolver: createAdminProxyReqPathResolver(baseUrl),
-        proxyErrorHandler,
-    });
+const createAdminProxy = (baseUrl: string): RequestHandler => {
+    return (req, res, next) => {
+        const isMultipart = req.headers['content-type']?.includes(
+            'multipart/form-data',
+        );
+
+        return proxy(baseUrl, {
+            parseReqBody: !isMultipart,
+            proxyReqPathResolver: createAdminProxyReqPathResolver(baseUrl),
+            proxyErrorHandler,
+        });
+    };
 };
 
 export const homeProxy = createProxy(HOME_BASE_URL);
