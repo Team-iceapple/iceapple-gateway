@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir ./dist --target=node",
     "api-test": "bun --bun run scripts/test.ts"
   },
   "devDependencies": {
@@ -18,6 +19,7 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-http-proxy": "^2.1.2",
     "zod": "^4.1.5"

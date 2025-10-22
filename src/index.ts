@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import v8 from 'node:v8';
 import cors from 'cors';
 import express from 'express';
